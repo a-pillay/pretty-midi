@@ -951,7 +951,7 @@ class PrettyMIDI(object):
             chroma_matrix[note, :] = np.sum(piano_roll[note::12], axis=0)
         return chroma_matrix
 
-    def synthesize(self, fs=44100, wave=np.sin):
+    def synthesize(self, fs=44100, wave=np.sin, normalize=True):
         """Synthesize the pattern using some waveshape.  Ignores drum track.
 
         Parameters
@@ -961,6 +961,10 @@ class PrettyMIDI(object):
         wave : function
             Function which returns a periodic waveform,
             e.g. ``np.sin``, ``scipy.signal.square``, etc.
+        normalize : bool
+            Default ``True``, which normalizes the output wave to the range [-1, 1].
+            Otherwise, divides the output by the maximum value of a 16-bit integer 
+            multiplied by the number of instruments, and lets the user handle accordingly.
 
         Returns
         -------
@@ -978,11 +982,19 @@ class PrettyMIDI(object):
         # Sum all waveforms in
         for waveform in waveforms:
             synthesized[:waveform.shape[0]] += waveform
-        # Normalize
-        synthesized /= np.abs(synthesized).max()
+
+        if normalize:
+            # Hard normalize to [-1, 1]
+            synthesized /= np.abs(synthesized).max()
+        else:
+            # Normalize by the maximum absolute value of a 16-bit integer
+            # to prevent clipping
+            synthesized /= (len(self.instruments) * 2 ** 15)
+
         return synthesized
 
-    def fluidsynth(self, fs=None, synthesizer=None, sfid=0, sf2_path=None):
+    def fluidsynth(self, fs=None, synthesizer=None, sfid=0, sf2_path=None, 
+                   normalize=True):
         """Synthesize using fluidsynth.
 
         Parameters
@@ -1005,6 +1017,10 @@ class PrettyMIDI(object):
             ``pretty_midi``.
             .. deprecated:: 0.2.11
                 Use :param:`synthesizer` instead.
+        normalize : bool
+            Default ``True``, which normalizes the output wave to the range [-1, 1].
+            Otherwise, divides the output by the maximum value of a 16-bit integer 
+            multiplied by the number of instruments, and lets the user handle accordingly.
 
         Returns
         -------
@@ -1043,8 +1059,15 @@ class PrettyMIDI(object):
         # Sum all waveforms in
         for waveform in waveforms:
             synthesized[:waveform.shape[0]] += waveform
-        # Normalize
-        synthesized /= np.abs(synthesized).max()
+
+        if normalize:
+            # Hard normalize to [-1, 1]
+            synthesized /= np.abs(synthesized).max()
+        else:
+            # Normalize by the maximum absolute value of a 16-bit integer
+            # to prevent clipping
+            synthesized /= (len(self.instruments) * 2 ** 15)
+        
         return synthesized
 
     def tick_to_time(self, tick):
