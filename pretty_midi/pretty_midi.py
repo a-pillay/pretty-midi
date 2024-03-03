@@ -1338,7 +1338,7 @@ class PrettyMIDI(object):
         for instrument in self.instruments:
             instrument.remove_invalid_notes()
 
-    def write(self, filename):
+    def write(self, filename=None):
         """Write the MIDI data out to a .mid file.
 
         Parameters
@@ -1511,6 +1511,10 @@ class PrettyMIDI(object):
             for event in track:
                 event.time -= tick
                 tick += event.time
+
+        if filename is None:
+            return mid
+
         # Write it out
         if isinstance(filename, six.string_types) or isinstance(filename, pathlib.PurePath):
             # If a string or path was given, pass it as the filename
@@ -1518,5 +1522,3 @@ class PrettyMIDI(object):
         else:
             # Otherwise, try passing it in as a file pointer
             mid.save(file=filename)
-
-        return mid
